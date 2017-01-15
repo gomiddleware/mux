@@ -30,7 +30,20 @@ go get github.com/gomiddleware/mux
 ## Usage / Example
 
 ```go
+// new Mux
 r := mux.New()
+
+// every request gets a 'X-Request-ID' request header
+r.Use("/", reqid.RandomId)
+
+// serve the /about page
+r.Get("/about", nil, http.HandlerFunc(aboutHandler))
+
+// log requests to the homepage
+r.Get("/", []func(http.Handler) http.Handler{requestLogger}, http.HandlerFunc(homeHandler))
+
+// start the server
+http.ListenAndServe(":8080", r)
 ```
 
 ## Author ##
