@@ -35,25 +35,25 @@ func TestSimple(t *testing.T) {
 		{"user", "/u/chilts/", 200, "Hello, chilts!\n"},
 	}
 
-	r := New()
+	m := New()
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	m.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Home\n"))
 	})
 
-	r.Get("/about", func(w http.ResponseWriter, r *http.Request) {
+	m.Get("/about", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("About\n"))
 	})
 
-	r.Get("/u/:username/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m.Get("/u/:username/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vals := Vals(r)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello, " + vals["username"] + "!\n"))
 	}))
 
-	ts := httptest.NewServer(r)
+	ts := httptest.NewServer(m)
 	defer ts.Close()
 
 	fmt.Printf("url=%s\n", ts.URL)

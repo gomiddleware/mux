@@ -36,70 +36,70 @@ type Route struct {
 	Handler     http.Handler
 }
 
-// Router is just an array of Route.
-type Router struct {
+// Mux is just an array of Route.
+type Mux struct {
 	routes []Route
 }
 
-// Make sure the Router conforms with the http.Handler interface.
+// Make sure the Mux conforms with the http.Handler interface.
 var _ http.Handler = New()
 
-// New returns a new initialized Router.  Nothing is automatic. You must do slash/non-slash redirection yourself.
-func New() *Router {
-	return &Router{}
+// New returns a new initialized Mux.  Nothing is automatic. You must do slash/non-slash redirection yourself.
+func New() *Mux {
+	return &Mux{}
 }
 
-// Get is a shortcut for router.add("GET", path, things...)
-func (r *Router) Get(path string, things ...interface{}) error {
+// Get is a shortcut for mux.add("GET", path, things...)
+func (m *Mux) Get(path string, things ...interface{}) error {
 	log.Printf("NewGet()\n")
-	return r.add("GET", path, things...)
+	return m.add("GET", path, things...)
 }
 
-// Post is a shortcut for router.add("POST", path, things...)
-func (r *Router) Post(path string, things ...interface{}) {
-	r.add("POST", path, things...)
+// Post is a shortcut for mux.add("POST", path, things...)
+func (m *Mux) Post(path string, things ...interface{}) {
+	m.add("POST", path, things...)
 }
 
-// Put is a shortcut for router.add("PUT", path, things...)
-func (r *Router) Put(path string, things ...interface{}) {
-	r.add("PUT", path, things...)
+// Put is a shortcut for mux.add("PUT", path, things...)
+func (m *Mux) Put(path string, things ...interface{}) {
+	m.add("PUT", path, things...)
 }
 
-// Patch is a shortcut for router.add("PATCH", path, things...)
-func (r *Router) Patch(path string, things ...interface{}) {
-	r.add("PATCH", path, things...)
+// Patch is a shortcut for mux.add("PATCH", path, things...)
+func (m *Mux) Patch(path string, things ...interface{}) {
+	m.add("PATCH", path, things...)
 }
 
-// Delete is a shortcut for router.add("DELETE", path, things...)
-func (r *Router) Delete(path string, things ...interface{}) {
-	r.add("DELETE", path, things...)
+// Delete is a shortcut for mux.add("DELETE", path, things...)
+func (m *Mux) Delete(path string, things ...interface{}) {
+	m.add("DELETE", path, things...)
 }
 
 // Use adds some middleware to a path prefix. Unlike other methods such as Get, Post, Put, Patch, and Delete, Use
 // matches for the prefix only and not the entire path. (Though of course, the entire exact path also matches.)
 //
-// e.g. r.Use("/profile/", ...) matches the requests "/profile/", "/profile/settings", and "/profile/a/path/to/".
+// e.g. m.Use("/profile/", ...) matches the requests "/profile/", "/profile/settings", and "/profile/a/path/to/".
 //
-// Note however, r.Use("/profile/", ...) doesn't match "/profile" since it contains too many slashes. But
-// r.Use("/profile", ...) does match "/profile/" and "/profile/..." (but check that's actually what you want here).
+// Note however, m.Use("/profile/", ...) doesn't match "/profile" since it contains too many slashes. But
+// m.Use("/profile", ...) does match "/profile/" and "/profile/..." (but check that's actually what you want here).
 //
 // Also note that if you Use("/s/"), then this can be used to handle all static files inside /s/.
-func (r *Router) Use(path string, things ...interface{}) error {
-	return r.add("USE", path, things...)
+func (m *Mux) Use(path string, things ...interface{}) error {
+	return m.add("USE", path, things...)
 }
 
 // add registers a new request handle with the given path and method.
 //
 // The respective shortcuts (for GET, POST, PUT, PATCH and DELETE) can also be used.
-func (r *Router) add(method, path string, things ...interface{}) error {
+func (m *Mux) add(method, path string, things ...interface{}) error {
 	log.Printf("add()\n")
 
 	if path[0] != '/' {
 		panic("path must begin with '/' in path '" + path + "'")
 	}
 
-	if r.routes == nil {
-		r.routes = make([]Route, 0)
+	if m.routes == nil {
+		m.routes = make([]Route, 0)
 	}
 
 	// collect up some things like the middlewares and the handler
@@ -158,9 +158,9 @@ func (r *Router) add(method, path string, things ...interface{}) error {
 	}
 
 	// add it to the handlers
-	r.routes = append(r.routes, route)
+	m.routes = append(m.routes, route)
 
-	// log.Printf("routes=%#v\n", r.routes)
+	// log.Printf("routes=%#v\n", m.routes)
 	return nil
 }
 
@@ -250,7 +250,7 @@ func isMatch(method string, segments []string, route *Route) (map[string]string,
 }
 
 // ServeHTTP
-func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("--- NEW REQUEST %s %s ---\n", r.Method, r.URL.Path)
 
 	method := r.Method
@@ -277,7 +277,7 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("request: segments=%#v\n", segments)
 
-	for i, route := range router.routes {
+	for i, route := range m.routes {
 		log.Printf("--- Route(%d): %s /%s\n", i, route.Method, strings.Join(route.Segments, "/"))
 
 		var vals map[string]string

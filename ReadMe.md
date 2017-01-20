@@ -1,4 +1,4 @@
-# mux : Small but powerful router, including middleware pipelines.
+# mux : powerful router, with first-class middleware chains.
 
 ## Overview [![GoDoc](https://godoc.org/github.com/gomiddleware/mux?status.svg)](https://godoc.org/github.com/gomiddleware/mux) [![Build Status](https://travis-ci.org/gomiddleware/mux.svg)](https://travis-ci.org/gomiddleware/mux)
 

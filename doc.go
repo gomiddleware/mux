@@ -5,9 +5,14 @@
 // lot of power. Inclusion of a middleware pipeline within the router also provides lots of power, plus less end-user
 // code.
 //
-//     r := mux.New()
+//     m := mux.New()
 //
-// This package has been intentionally kept simple at around 250 lines of code.
+//     m.Get("/", func(w http.ResponseWriter, r *http.Request) {
+//         w.WriteHeader(http.StatusOK)
+//         w.Write([]byte("Home\n"))
+//     })
+//
+//     log.Fatal(http.ListenAndServe(":8080", m))
 //
 // Inspired by a few other routers and middlewares such as:
 //
