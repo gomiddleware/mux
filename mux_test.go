@@ -37,17 +37,17 @@ func TestSimple(t *testing.T) {
 
 	r := New()
 
-	r.Get("/", nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Home\n"))
-	}))
+	})
 
-	r.Get("/about", nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/about", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("About\n"))
-	}))
+	})
 
-	r.Get("/u/:username/", nil, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/u/:username/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vals := Vals(r)
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello, " + vals["username"] + "!\n"))
