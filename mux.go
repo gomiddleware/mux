@@ -102,7 +102,7 @@ func (m *Mux) Use(path string, things ...interface{}) error {
 //
 // The respective shortcuts (for GET, POST, PUT, PATCH and DELETE) can also be used.
 func (m *Mux) add(method, path string, things ...interface{}) error {
-	log.Printf("add()\n")
+	log.Printf("--> add(): %s %s\n", method, path)
 
 	if path[0] != '/' {
 		panic("path must begin with '/' in path '" + path + "'")
@@ -126,7 +126,8 @@ func (m *Mux) add(method, path string, things ...interface{}) error {
 		case func(http.Handler) http.Handler:
 			log.Printf("got func(http.Handler) http.Handler\n")
 			// if we already have a handler, then we should bork
-			if len(middlewares) > 0 {
+			if handler != nil {
+				log.Printf("returning ErrMiddlewareAfterHandler")
 				return ErrMiddlewareAfterHandler
 			}
 			// all good, so add the middleware
