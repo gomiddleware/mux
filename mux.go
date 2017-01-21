@@ -75,6 +75,16 @@ func (m *Mux) Delete(path string, things ...interface{}) {
 	m.add("DELETE", path, things...)
 }
 
+// Options is a shortcut for mux.add("OPTIONS", path, things...)
+func (m *Mux) Options(path string, things ...interface{}) {
+	m.add("OPTIONS", path, things...)
+}
+
+// Head is a shortcut for mux.add("HEAD", path, things...)
+func (m *Mux) Head(path string, things ...interface{}) {
+	m.add("HEAD", path, things...)
+}
+
 // Use adds some middleware to a path prefix. Unlike other methods such as Get, Post, Put, Patch, and Delete, Use
 // matches for the prefix only and not the entire path. (Though of course, the entire exact path also matches.)
 //
