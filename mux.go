@@ -267,8 +267,8 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 	normPath := path.Clean(r.URL.Path)
 	log.Printf("request: method=%#v\n", method)
-	log.Printf("request: path1=%#v\n", r.URL.Path)
-	log.Printf("request: path2=%#v\n", normPath)
+	log.Printf(" - r.URL.Path = %#v\n", r.URL.Path)
+	log.Printf(" - normalised = %#v\n", normPath)
 
 	// if the original path ends in a slash
 	if normPath != "/" {
@@ -276,6 +276,8 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			normPath = normPath + "/"
 		}
 	}
+
+	log.Printf(" - normalised = %#v\n", normPath)
 
 	// if these paths differ, then redirect to the real one
 	if normPath != r.URL.Path {
@@ -287,6 +289,10 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(normPath, "/")[1:]
 
 	log.Printf("request: segments=%#v\n", segments)
+
+	// save this for the final handler, but may be overwritten by our placholders (which we add to the Context), or
+	// any other middlewares, either in USE prefixes or in the final handler
+	rNext := r
 
 	for i, route := range m.routes {
 		log.Printf("--- Route(%d): %s /%s\n", i, route.Method, strings.Join(route.Segments, "/"))
@@ -302,8 +308,9 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			vals, matched = isMatch(method, segments, &route)
 			log.Printf("vals1=%#v\n", vals)
 
-			ctx := context.WithValue(r.Context(), valsIdKey, vals)
-			r = r.WithContext(ctx)
+			// save these placeholders into the context
+			ctx := context.WithValue(rNext.Context(), valsIdKey, vals)
+			rNext = rNext.WithContext(ctx)
 		}
 
 		// if matched, then we have a non-nil 'vals' too, even if it contains no values
@@ -320,15 +327,16 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				next := func(w http.ResponseWriter, r *http.Request) {
 					log.Printf("*** next has been called\n")
 					finished = false
+
+					// the middleware may have added something to the context, so make sure we pass this along properly
+					rNext = r
 				}
 
 				nextHandlerFunc := http.HandlerFunc(next)
 
 				// now call the middleware with our next
 				log.Printf("before middleware\n")
-				// log.Printf("vals2=%#v\n", vals)
-				// ctx := context.WithValue(r.Context(), valsIdKey, vals)
-				middleware(nextHandlerFunc).ServeHTTP(w, r)
+				middleware(nextHandlerFunc).ServeHTTP(w, rNext)
 				log.Printf("after middleware\n")
 
 				// if we're finished, then just return
@@ -339,7 +347,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// finally, check if we have a handler and if so, call it - presume it is the last in the chain
 			if route.Handler != nil {
-				route.Handler.ServeHTTP(w, r)
+				route.Handler.ServeHTTP(w, rNext)
 				return
 			}
 		} else {
@@ -349,7 +357,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// if we got through to here, then either nothing matched, or any middlewares did match but still called `next` and
 	// hence there is no final route to deal with the request
-	http.NotFound(w, r)
+	http.NotFound(w, rNext)
 }
 
 func Vals(r *http.Request) map[string]string {
