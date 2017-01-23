@@ -111,12 +111,12 @@ func (m *Mux) Use(path string, things ...interface{}) error {
 	return m.add("USE", path, things...)
 }
 
-// Prefix adds a handler to a path prefix. Unlike other methods such as Get, Post, Put, Patch, and Delete, All matches
-// for the prefix only and not the entire path. (Though of course, the entire exact path also matches.)
+// All adds a handler to a path prefix for all methods. Essentially a catch-all. Unlike other methods such as Get,
+// Post, Put, Patch, and Delete, All matches for the prefix only and not the entire path.
 //
-// e.g. m.Prefix("/s", ...) matches the requests "/s/img.png", "/s/css/styles.css", and "/s/js/app.js".
-func (m *Mux) Prefix(path string, things ...interface{}) error {
-	return m.add("PREFIX", path, things...)
+// e.g. m.All("/s", ...) matches the requests "/s/img.png", "/s/css/styles.css", and "/s/js/app.js".
+func (m *Mux) All(path string, things ...interface{}) error {
+	return m.add("ALL", path, things...)
 }
 
 // add registers a new request handle with the given path and method.
@@ -198,7 +198,7 @@ func (m *Mux) add(method, path string, things ...interface{}) error {
 		// add  it to the middlewares
 		m.prefixes = append(m.prefixes, prefix)
 	} else {
-		// GET, PUT, PATCH, POST, DELETE, OPTIONS, HEAD, and PREFIX!
+		// GET, PUT, PATCH, POST, DELETE, OPTIONS, HEAD, and ALL!
 
 		// generate our wrapped handler, wrapping each in reverse order from the current route, back down through each route
 		wrappedHandler := handler
@@ -213,7 +213,7 @@ func (m *Mux) add(method, path string, things ...interface{}) error {
 			log.Printf("- checking prefix %d to add middleware\n", j)
 			prefix := m.prefixes[len(m.prefixes)-1-j]
 
-			if isPrefixMatch(segments, &prefix) {
+			if isPrefixMatch(segments, prefix.Segments) {
 				log.Printf("- this prefix matches this route\n")
 				// and again, get each middleware in reverse order
 				for i := range prefix.Middlewares {
@@ -242,23 +242,25 @@ func (m *Mux) add(method, path string, things ...interface{}) error {
 	return nil
 }
 
-func isPrefixMatch(segments []string, prefix *Prefix) bool {
+func isPrefixMatch(segments []string, prefixSegments []string) bool {
 	log.Printf("isPrefixMatch: %v\n", segments)
 
-	log.Printf("Checking against %#v\n", prefix)
+	log.Printf("Checking against prefixSegments: %#v\n", prefixSegments)
+
+	prefixLength := len(prefixSegments)
 
 	// if segments is just []string{''} (ie, from "/"), then this will match everything
-	if prefix.Length == 1 && prefix.Segments[0] == "" {
+	if prefixLength == 1 && prefixSegments[0] == "" {
 		return true
 	}
 
 	// can't match if the prefix path length is longer than the URL
-	if prefix.Length > len(segments) {
+	if prefixLength > len(segments) {
 		return false
 	}
 
 	// check each segment is the same (for the length of the prefix)
-	for i, segment := range prefix.Segments {
+	for i, segment := range prefixSegments {
 		log.Printf("isPrefixMatch: checking '%s' against '%s'\n", segments[i], segment)
 
 		// if both segments are empty, then this matches
@@ -360,8 +362,21 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for i, route := range m.routes {
 		log.Printf("--- Route(%d): %s /%s\n", i, route.Method, strings.Join(route.Segments, "/"))
 
-		// ToDo: check for a prefix match for things like m.Prefix("/s", http.FileServer(http.Dir("static")))
-		vals, matched := isMatch(method, segments, &route)
+		var vals map[string]string
+		var matched bool
+
+		// check if we need to check against a prefix or the entire path
+		if route.Method == "ALL" {
+			// check the prefix
+			matched = isPrefixMatch(segments, route.Segments)
+			if matched {
+				vals = make(map[string]string)
+				vals["path"] = strings.TrimPrefix(normPath, route.Path)
+			}
+		} else {
+			// check the entire path
+			vals, matched = isMatch(method, segments, &route)
+		}
 		if matched == false {
 			log.Printf("NO match")
 			continue
