@@ -329,7 +329,7 @@ func isMatch(method string, segments []string, route *Route) (map[string]string,
 	return vals, true
 }
 
-// ServeHTTP
+// ServeHTTP makes the router implement the http.Handler interface.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("--- NEW REQUEST %s %s ---\n", r.Method, r.URL.Path)
 
