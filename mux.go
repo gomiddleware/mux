@@ -154,6 +154,36 @@ func (m *Mux) add(method, path string, things ...interface{}) {
 			}
 			// all good, so add the middleware
 			middlewares = append(middlewares, val)
+
+		case func(http.HandlerFunc) http.HandlerFunc:
+			// if we already have a handler, then we should bork
+			if handler != nil {
+				m.Err = ErrMiddlewareAfterHandler
+				return
+			}
+
+			// This `setup` function is called when we are setting up our middleware stack. It is a `func(next
+			// http.Handler) http.Handler` function as is the rest of the middleware.
+			setup := func(next http.Handler) http.Handler {
+				// We have been called here during middleware stack setup. So we need to return another `http.Handler`
+				// which calls `next.ServeHTTP(w, r)`.
+				//
+				// To do this, call our original val() function with a `func(w http.ResponseWriter, r *http.Request)`)
+				// so that we get a `func(w http.ResponseWriter, r *http.Request)` back. We convert that to a http.Handler()
+				// so that it can be called from the previous middleware at the right time.
+				//
+				// Once `myNext` is called, that's actually the `val` middleware running and calling it's own next,
+				// which is `myNext`, so we just pass that along to the `next` middleware we were given during setup
+				// above.
+				myNext := func(w http.ResponseWriter, r *http.Request) {
+					next.ServeHTTP(w, r)
+				}
+
+				return http.Handler(val(myNext))
+			}
+
+			middlewares = append(middlewares, setup)
+
 		case http.Handler:
 			if handler != nil {
 				m.Err = ErrMultipleHandlers
@@ -161,6 +191,7 @@ func (m *Mux) add(method, path string, things ...interface{}) {
 			}
 			// all good, so remember the handler
 			handler = val
+
 		case func(http.ResponseWriter, *http.Request):
 			if handler != nil {
 				m.Err = ErrMultipleHandlers
@@ -168,6 +199,7 @@ func (m *Mux) add(method, path string, things ...interface{}) {
 			}
 			// all good, so remember the handler
 			handler = http.HandlerFunc(val)
+
 		default:
 			m.Err = ErrUnknownTypeInRoute
 			return
