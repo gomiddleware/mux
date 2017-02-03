@@ -388,6 +388,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+// Vals enables you to retrieve the placeholder matches of the current request.
 func Vals(r *http.Request) map[string]string {
 	return r.Context().Value(valsIdKey).(map[string]string)
 }
