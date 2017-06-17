@@ -389,6 +389,9 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Vals enables you to retrieve the placeholder matches of the current request.
+//
+// A placeholder can be set using a path such as "/path/:placeholder/to/" and Vals will return is in the map with the
+// key "placeholder".
 func Vals(r *http.Request) map[string]string {
 	return r.Context().Value(valsIdKey).(map[string]string)
 }

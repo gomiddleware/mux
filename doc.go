@@ -50,6 +50,9 @@
 //
 //     m.Get("/my/", checkUserIsSignedIn, userHomeHandler)
 //
+//     // 'postName' can be fetched with mux.Vals(r) inside `postHandler`
+//     m.Get("/post/:postName", postHandler)
+//
 //     if m.Err != nil {
 //         // ... something went wrong with a route
 //     }
